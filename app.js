@@ -3,10 +3,16 @@ let $$ = document.querySelectorAll.bind(document);
 const textContainer = $("#text");
 
 const maxWordLength = 5;
+const timeLimit = 10;
+
 let words = [];
 let currentIndex = 0;
 let currentLine = 0;
 let lines = [];
+let running = false;
+let currentTime = 0;
+let correctCount = 0;
+let falseCount = 0;
 
 const appendEl = (parentElement, text) => {
   const newEl = document.createElement("span");
@@ -14,14 +20,37 @@ const appendEl = (parentElement, text) => {
   parentElement.appendChild(newEl);
 };
 
-const range = (size) => {
-  return [...Array(size).keys()];
-};
-
 const fetchWords = async () => {
   const response = await fetch("words.txt");
   const text = await response.text();
   words = text.split("\n").filter((word) => word.length <= maxWordLength);
+};
+
+const updateTime = () => {
+  currentTime -= 1;
+  $("#countdown").innerHTML = currentTime;
+  if (currentTime == 0) {
+    running = false;
+    let correctWords = [...$$("#text span")]
+      .slice(0, currentIndex)
+      .filter((el) => !isLetter(el.innerHTML)).length;
+    console.log(correctWords);
+    let wordCount = (correctWords * 60) / timeLimit;
+    $(
+      "#result"
+    ).innerHTML = `WPM: ${wordCount}, Correct: ${correctCount}, False: ${falseCount}`;
+  } else {
+    window.setTimeout(updateTime, 1000);
+  }
+};
+
+const startCountdown = () => {
+  correctCount = 0;
+  falseCount = 0;
+  running = true;
+  $("#result").innerHTML = "";
+  currentTime = timeLimit;
+  window.setTimeout(updateTime, 1000);
 };
 
 const getLines = () => {
@@ -57,16 +86,20 @@ fetchWords().then(() => {
 });
 
 document.addEventListener("keypress", (event) => {
+  if (running == false) startCountdown();
   let current = currentEl();
   if (
     event.key.toLowerCase() == current.innerHTML ||
     (event.key === " " && !isLetter(current.innerHTML))
   ) {
+    correctCount += 1;
     current.classList.add("correct");
     current.classList.remove("current");
     currentIndex += 1;
     currentEl().classList.add("current");
     updateLines();
+  } else {
+    falseCount += 1;
   }
 });
 
@@ -95,3 +128,7 @@ function groupBy(list, keyGetter) {
   });
   return map;
 }
+
+const range = (size) => {
+  return [...Array(size).keys()];
+};
