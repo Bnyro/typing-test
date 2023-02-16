@@ -1,18 +1,26 @@
 let $ = document.querySelector.bind(document);
 let $$ = document.querySelectorAll.bind(document);
-const textContainer = $("#text");
 
+// constants
 const maxWordLength = 5;
 const timeLimit = 10;
 
+// current state
+let loading = false;
+let running = null;
+
+// text to type
 let words = [];
+let lines = [];
 let currentIndex = 0;
 let currentLine = 0;
-let lines = [];
-let running = false;
+
+// current stats
 let currentTime = 0;
 let correctCount = 0;
 let falseCount = 0;
+
+let updateTimeTimeout = null;
 
 const appendEl = (parentElement, text) => {
   const newEl = document.createElement("span");
@@ -40,17 +48,15 @@ const updateTime = () => {
       "#result"
     ).innerHTML = `WPM: ${wordCount}, Correct: ${correctCount}, False: ${falseCount}`;
   } else {
-    window.setTimeout(updateTime, 1000);
+    updateTimeTimeout = window.setTimeout(updateTime, 1000);
   }
 };
 
 const startCountdown = () => {
-  correctCount = 0;
-  falseCount = 0;
   running = true;
   $("#result").innerHTML = "";
   currentTime = timeLimit;
-  window.setTimeout(updateTime, 1000);
+  updateTimeTimeout = window.setTimeout(updateTime, 1000);
 };
 
 const getLines = () => {
@@ -71,22 +77,38 @@ const updateLines = () => {
 };
 
 const showText = () => {
+  $("#text").innerHTML = "";
   range(1000).forEach((_) => {
     const chars = [...words.random()];
     chars.forEach((char) => {
-      appendEl(textContainer, char);
+      appendEl($("#text"), char);
     });
   });
   currentEl().classList.add("current");
   lines = getLines();
 };
 
-fetchWords().then(() => {
+const refresh = async () => {
+  if (loading) return;
+  loading = true;
+  correctCount = 0;
+  falseCount = 0;
+  currentIndex = 0;
+  currentLine = 0;
+  running = null;
+  window.clearTimeout(updateTimeTimeout);
+  await fetchWords();
   showText();
-});
+  loading = false;
+};
+
+refresh();
+
+$("#reset").addEventListener("click", refresh);
 
 document.addEventListener("keypress", (event) => {
-  if (running == false) startCountdown();
+  if (running == false) return;
+  if (running == null) startCountdown();
   let current = currentEl();
   if (
     event.key.toLowerCase() == current.innerHTML ||
