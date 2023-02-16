@@ -3,10 +3,9 @@ let $$ = document.querySelectorAll.bind(document);
 
 // constants
 const maxWordLength = 5;
-const timeLimit = 10;
+const timeLimit = 60;
 
 // current state
-let loading = false;
 let running = null;
 
 // text to type
@@ -42,7 +41,6 @@ const updateTime = () => {
     let correctWords = [...$$("#text span")]
       .slice(0, currentIndex)
       .filter((el) => !isLetter(el.innerHTML)).length;
-    console.log(correctWords);
     let wordCount = (correctWords * 60) / timeLimit;
     $(
       "#result"
@@ -88,23 +86,25 @@ const showText = () => {
   lines = getLines();
 };
 
-const refresh = async () => {
-  if (loading) return;
-  loading = true;
+const refresh = () => {
   correctCount = 0;
   falseCount = 0;
   currentIndex = 0;
   currentLine = 0;
+  $("#countdown").innerHTML = timeLimit;
+  $("#result").innerHTML = "";
   running = null;
   window.clearTimeout(updateTimeTimeout);
-  await fetchWords();
   showText();
-  loading = false;
 };
 
-refresh();
+fetchWords().then(() => {
+  refresh();
+});
 
-$("#reset").addEventListener("click", refresh);
+$("#reset").addEventListener("mouseup", (event) => {
+  if (isLetter(event.key)) refresh();
+});
 
 document.addEventListener("keypress", (event) => {
   if (running == false) return;
